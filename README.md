@@ -5,6 +5,7 @@ A Chrome extension that automatically fills out GitHub PR descriptions using AI.
 ## Features
 
 - 🤖 **AI-Powered**: Uses OpenAI GPT to generate meaningful PR descriptions
+- 🎯 **Model Selection**: Choose between GPT-4o and GPT-4o-mini models
 - 📝 **Template Aware**: Works with existing PR templates in your repositories
 - 🔍 **Smart Diff Analysis**: Analyzes actual code changes to create relevant descriptions
 - ⚙️ **Easy Setup**: Simple settings UI for API key management
@@ -34,7 +35,10 @@ A Chrome extension that automatically fills out GitHub PR descriptions using AI.
 1. Click the extension icon in your browser toolbar
 2. Go to the "⚙️ Settings" tab
 3. Enter your OpenAI API key
-4. Click "Save & Verify" to test the connection
+4. Select your preferred AI model:
+   - **GPT-4o**: Most capable model, best quality (recommended)
+   - **GPT-4o-mini**: Faster and more cost-effective
+5. Click "Save & Verify" to test the connection
 
 ## Usage
 
@@ -51,7 +55,7 @@ The extension:
 1. **Detects GitHub PR pages** using content scripts
 2. **Extracts diff data** from the GitHub interface
 3. **Reads any PR template** already in the description field
-4. **Sends to OpenAI** with a carefully crafted prompt
+4. **Sends to OpenAI** with your selected model and a carefully crafted prompt
 5. **Fills the description** with the AI-generated content
 
 ## Extension Architecture
@@ -109,7 +113,10 @@ The extension:
 
 ## Cost Estimation
 
-The extension uses OpenAI's GPT-4o-mini model, which is cost-effective:
+The extension supports two OpenAI models with different cost profiles:
+
+- **GPT-4o**: ~$0.01-0.05 per PR description (higher quality)
+- **GPT-4o-mini**: ~$0.001-0.01 per PR description (more cost-effective)
 
 - ~$0.001-0.01 per PR description (varies by diff size)
 - Typical usage: $1-5 per month for regular development
