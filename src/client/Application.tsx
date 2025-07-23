@@ -226,8 +226,18 @@ export const Application = () => {
     // Save model to storage immediately
     try {
       await chrome.storage.sync.set({ selectedModel: newModel });
+      
+      // Show success feedback
+      const modelLabel = AVAILABLE_MODELS.find(m => m.value === newModel)?.label || newModel;
+      setMessage({ type: "success", text: `Model switched to ${modelLabel}` });
+      
+      // Clear the message after 3 seconds
+      setTimeout(() => {
+        setMessage(null);
+      }, 3000);
     } catch (error) {
       console.error("Failed to save model to storage:", error);
+      setMessage({ type: "error", text: "Failed to save model selection" });
     }
   };
 
@@ -393,6 +403,14 @@ export const Application = () => {
             onChange={handleModelChange}
             variant="outlined"
             size="small"
+            helperText={`Currently using: ${AVAILABLE_MODELS.find(m => m.value === selectedModel)?.label || selectedModel}`}
+            sx={{
+              "& .MuiFormHelperText-root": {
+                color: "success.main",
+                fontWeight: 500,
+                fontSize: "0.75rem"
+              }
+            }}
           >
             {AVAILABLE_MODELS.map((model) => (
               <MenuItem key={model.value} value={model.value}>
