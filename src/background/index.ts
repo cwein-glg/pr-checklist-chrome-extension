@@ -4,6 +4,7 @@
  */
 
 import OpenAI from "openai";
+import { OpenAIModel, AvailableModel } from "../types";
 
 interface Message {
   type: "TEST_API_KEY" | "GENERATE_PR_DESCRIPTION" | "GET_SETTINGS";
@@ -144,7 +145,7 @@ class PRChecklistBackground {
 
       // Test with a simple completion
       const completion = await this.openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: OpenAIModel.GPT_4O_MINI,
         messages: [{ role: "user", content: 'Say "test"' }],
         max_tokens: 10,
         temperature: 0
@@ -170,7 +171,12 @@ class PRChecklistBackground {
     }
   }
 
-  private async generatePRDescription(data: { diff: string; template: string; url: string }): Promise<Response> {
+  private async generatePRDescription(data: {
+    diff: string;
+    template: string;
+    url: string;
+    model?: string;
+  }): Promise<Response> {
     try {
       if (!this.openai) {
         return {
@@ -179,13 +185,22 @@ class PRChecklistBackground {
         };
       }
 
-      const { diff, template, url } = data;
+      const { diff, template, url, model = OpenAIModel.GPT_4O } = data;
+
+      // Validate model
+      const validModels = Object.values(OpenAIModel);
+      if (!validModels.includes(model as AvailableModel)) {
+        return {
+          success: false,
+          error: `Invalid model: ${model}. Supported models: ${validModels.join(", ")}`
+        };
+      }
 
       // Build the prompt for GPT
       const prompt = this.buildPrompt(diff, template, url);
 
       const completion = await this.openai.chat.completions.create({
-        model: "gpt-4o",
+        model: model,
         messages: [
           {
             role: "system",

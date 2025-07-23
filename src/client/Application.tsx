@@ -18,7 +18,8 @@ import {
   Tab,
   Card,
   CardContent,
-  IconButton
+  IconButton,
+  MenuItem
 } from "@mui/material";
 import {
   Settings,
@@ -32,6 +33,7 @@ import {
   Speed
 } from "@mui/icons-material";
 
+import { OpenAIModel, AVAILABLE_MODELS } from "../types";
 import "./Application.scss";
 
 interface TabPanelProps {
@@ -65,6 +67,7 @@ export const Application = () => {
   const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [currentStatus, setCurrentStatus] = useState("Ready");
+  const [selectedModel, setSelectedModel] = useState<OpenAIModel>(OpenAIModel.GPT_4O);
 
   useEffect(() => {
     loadSettings();
@@ -73,10 +76,13 @@ export const Application = () => {
 
   const loadSettings = async () => {
     try {
-      const result = await chrome.storage.sync.get(["openaiApiKey"]);
+      const result = await chrome.storage.sync.get(["openaiApiKey", "selectedModel"]);
       if (result.openaiApiKey) {
         setApiKey(result.openaiApiKey);
         setIsConnected(true);
+      }
+      if (result.selectedModel) {
+        setSelectedModel(result.selectedModel);
       }
     } catch (error) {
       console.error("Failed to load settings:", error);
@@ -184,7 +190,8 @@ export const Application = () => {
         data: {
           diff: "Test diff content: Added new feature for user authentication",
           template: "## Description\n\n## Changes\n\n## Testing",
-          url: "https://github.com/test/repo/compare/main...feature"
+          url: "https://github.com/test/repo/compare/main...feature",
+          model: selectedModel
         }
       });
 
@@ -210,6 +217,18 @@ export const Application = () => {
   const handleApiKeyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setApiKey(event.target.value);
     if (message) setMessage(null);
+  };
+
+  const handleModelChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newModel = event.target.value as OpenAIModel;
+    setSelectedModel(newModel);
+
+    // Save model to storage immediately
+    try {
+      await chrome.storage.sync.set({ selectedModel: newModel });
+    } catch (error) {
+      console.error("Failed to save model to storage:", error);
+    }
   };
 
   return (
@@ -365,6 +384,22 @@ export const Application = () => {
               )
             }}
           />
+
+          <TextField
+            select
+            fullWidth
+            label="AI Model"
+            value={selectedModel}
+            onChange={handleModelChange}
+            variant="outlined"
+            size="small"
+          >
+            {AVAILABLE_MODELS.map((model) => (
+              <MenuItem key={model.value} value={model.value}>
+                {model.label} ({model.description})
+              </MenuItem>
+            ))}
+          </TextField>
 
           <Box
             sx={{

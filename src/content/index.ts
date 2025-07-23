@@ -3,6 +3,8 @@
  * Detects compare pages and facilitates auto-filling PR descriptions using AI
  */
 
+import { OpenAIModel } from "../types";
+
 interface Message {
   type: "GET_DIFF" | "FILL_DESCRIPTION" | "GET_TEMPLATE" | "GENERATE_PR_DESCRIPTION";
   data?: any;
@@ -25,16 +27,11 @@ class GitHubPRAutoFill {
   }
 
   private init() {
-    // Check if we're on a compare page
+    console.log("PullCraft: Initializing content script...");
     this.detectComparePage();
-
-    if (this.isComparePage) {
-      this.setupAutoFillUI();
-      this.setupMessageListeners();
-    }
-
-    // Watch for navigation changes (GitHub uses pushState)
+    this.setupAutoFillUI();
     this.observeNavigationChanges();
+    this.setupMessageListeners();
   }
 
   private detectComparePage() {
@@ -44,8 +41,6 @@ class GitHubPRAutoFill {
     // Also check if there's a PR description textarea (try multiple selectors)
     const prDescriptionField =
       (document.querySelector('textarea[name="pull_request[body]"]') as HTMLTextAreaElement) ||
-      (document.querySelector('textarea[data-testid="pull-request-body"]') as HTMLTextAreaElement) ||
-      (document.querySelector('textarea[placeholder*="description"]') as HTMLTextAreaElement) ||
       (document.querySelector('textarea[aria-label*="description"]') as HTMLTextAreaElement);
 
     if (prDescriptionField) {
@@ -56,30 +51,16 @@ class GitHubPRAutoFill {
     console.log("PullCraft: Page detection -", {
       url,
       isComparePage: this.isComparePage,
-      foundTextField: !!prDescriptionField
+      hasDescriptionField: !!prDescriptionField
     });
   }
 
   private setupAutoFillUI() {
     if (this.hasInjectedUI) return;
 
-    // Try to inject immediately
-    this.injectFloatingButton();
-
-    // Also try after delays to catch late-loading elements
-    setTimeout(() => this.injectFloatingButton(), 1000);
-    setTimeout(() => this.injectFloatingButton(), 3000);
-    setTimeout(() => this.injectFloatingButton(), 5000);
-
-    this.hasInjectedUI = true;
-  }
-
-  private injectFloatingButton() {
-    // Try multiple selectors to find the PR description field
+    // Try to find the PR description textarea
     const prDescriptionField =
       (document.querySelector('textarea[name="pull_request[body]"]') as HTMLTextAreaElement) ||
-      (document.querySelector('textarea[data-testid="pull-request-body"]') as HTMLTextAreaElement) ||
-      (document.querySelector('textarea[placeholder*="description"]') as HTMLTextAreaElement) ||
       (document.querySelector('textarea[aria-label*="description"]') as HTMLTextAreaElement);
 
     console.log("PullCraft: Attempting to inject button...", {
@@ -116,7 +97,7 @@ class GitHubPRAutoFill {
       top: 20px;
       right: 20px;
       z-index: 9999;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     `;
 
     // Create the actual button
@@ -125,30 +106,25 @@ class GitHubPRAutoFill {
     autoFillButton.className = "pr-autofill-btn";
 
     autoFillButton.style.cssText = `
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
       background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
       color: white;
       border: none;
       border-radius: 8px;
-      font-weight: 600;
-      font-size: 14px;
       padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
       box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
-      backdrop-filter: blur(10px);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
       min-width: 140px;
-      height: 44px;
+      justify-content: center;
     `;
 
-    // Set initial button content
     autoFillButton.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-      </svg>
+      <span style="font-size: 16px;">🤖</span>
       AI Auto-fill
     `;
     autoFillButton.title = "Generate PR description using AI based on your changes";
@@ -192,9 +168,7 @@ class GitHubPRAutoFill {
       case "idle":
         button.disabled = false;
         button.innerHTML = `
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-          </svg>
+          <span style="font-size: 16px;">🤖</span>
           AI Auto-fill
         `;
         button.style.background = "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)";
@@ -274,13 +248,18 @@ class GitHubPRAutoFill {
       // Get existing PR template
       const templateData = this.extractPRTemplate();
 
+      // Get selected model from storage
+      const result = await chrome.storage.sync.get(["selectedModel"]);
+      const selectedModel = result.selectedModel || OpenAIModel.GPT_4O;
+
       // Send to background script for AI processing
       const response = await this.sendMessage({
         type: "GENERATE_PR_DESCRIPTION",
         data: {
           diff: diffData,
           template: templateData,
-          url: window.location.href
+          url: window.location.href,
+          model: selectedModel
         }
       });
 
