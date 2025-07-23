@@ -219,6 +219,11 @@ export const Application = () => {
     if (message) setMessage(null);
   };
 
+  // Helper function to get model label by value
+  const getModelLabel = (modelValue: string) => {
+    return AVAILABLE_MODELS.find(m => m.value === modelValue)?.label || modelValue;
+  };
+
   const handleModelChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const newModel = event.target.value as OpenAIModel;
     setSelectedModel(newModel);
@@ -228,7 +233,7 @@ export const Application = () => {
       await chrome.storage.sync.set({ selectedModel: newModel });
       
       // Show success feedback
-      const modelLabel = AVAILABLE_MODELS.find(m => m.value === newModel)?.label || newModel;
+      const modelLabel = getModelLabel(newModel);
       setMessage({ type: "success", text: `Model switched to ${modelLabel}` });
       
       // Clear the message after 3 seconds
@@ -403,7 +408,7 @@ export const Application = () => {
             onChange={handleModelChange}
             variant="outlined"
             size="small"
-            helperText={`Currently using: ${AVAILABLE_MODELS.find(m => m.value === selectedModel)?.label || selectedModel}`}
+            helperText={`Currently using: ${getModelLabel(selectedModel)}`}
             sx={{
               "& .MuiFormHelperText-root": {
                 color: "success.main",
